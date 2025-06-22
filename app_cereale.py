@@ -70,7 +70,7 @@ elif regions_sel and cereales_sel:
     st.dataframe(df_filtre)
 
 else:
-    st.subheader("Veuillez sélectionner au moins une Région ou une Céréale.")
+    st.subheader2("Veuillez sélectionner au moins une Région ou une Céréale.")
 
 
 # Export Excel
@@ -238,7 +238,7 @@ df_filtre_3 = df[
 st.subheader("📈 Évolution de la Production par Année")
 
 fig_prod = px.line(
-    df_filtre.groupby(['Année', 'Céréale'])['Production'].mean().reset_index(),
+    df_filtre.gro2upby(['Année', 'Céréale'])['Production'].mean().reset_index(),
     x='Année',
     y='Production',
     color='Céréale',
