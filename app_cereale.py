@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import joblib
 import io
 import xlsxwriter
+from datetime import datetime
 
 
 # Configuration de la page
@@ -296,4 +297,127 @@ if st.button("📊 Cliquez ici pour afficher le graphique"):
     st.plotly_chart(fig_scatter, use_container_width=True)
 
 
-st.markdown("📍 Données issues de la source de Base de données du Burkina Faso. © 2025")
+
+
+##############################      Modélisationn    ############################
+
+st.subheader("🔮 Modélisation Prédictive du Rendement Céréalier")
+
+# Chargement du modèle
+@st.cache_resource
+def load_model():
+    return joblib.load('model_rendement.pkl')
+
+model = load_model()
+
+
+# Sidebar pour les inputs
+with st.sidebar:
+    st.header("Paramètres d'Entrée")
+    st.markdown("Renseignez les paramètres pour la prédiction")
+    
+    # Sélection des variables catégorielles
+    region = st.selectbox( "Région du Burkina Faso", 
+            ['Sahel', 'Centre', 'Boucle du Mouhoun', 'Centre-Sud', 
+            'Centre-Nord', 'Hauts-Bassins', 'Cascades', 'Plateau Centrale',
+            'Est', 'Centre-Ouest', 'Nord', 'Sud-Ouest']
+    )
+    
+    cereale = st.selectbox(
+        "Type de Céréale", 
+        ['Arachide', 'Coton', 'Maïs', 'Mil', 'Nebié', 'Riz', 'Sorgho']
+    )
+    
+    # Variables numériques
+    annee = st.number_input("Année", min_value=2000, max_value=2030, value=2023)
+    superficie = st.number_input("Superficie (ha)", min_value=0.0, value=5500.0)
+    temperature = st.number_input("Température Moyenne (°C)", value=30.0)
+    precipitation = st.number_input("Précipitation (mm)", value=200.0)
+    nb_jour_pluie = st.number_input("Nombre de Jours de Pluie dans l'année", value=7)
+    humidite = st.number_input("Humidité Moyenne annuelle (%)", value=65.0)
+    vent = st.number_input("Vitesse du Vent (km/h)", value=22.0)
+    ensoleillement = st.number_input("Durée d'Ensoleillement (h)", value=6.0)
+
+# Création du DataFrame d'entrée
+input_data = pd.DataFrame({
+    'Région': [region],
+    'Céréale': [cereale],
+    'Année': [annee],
+    'Superficie': [superficie],
+    'Température': [temperature],
+    'Précipitation': [precipitation],
+    'Nombre_Jour_Pluie': [nb_jour_pluie],
+    'Humidité': [humidite],
+    'Vitèsse_Vent': [vent],
+    'Durée_Ensoleillement': [ensoleillement]
+})
+
+# Affichage des données saisies
+with st.expander("Voir les données saisies"):
+    st.dataframe(input_data)
+
+# Bouton de prédiction
+if st.button("Prédire le rendement"):
+    try:
+        # Prédiction
+        prediction = model.predict(input_data)
+        
+        # Affichage des résultats
+        st.success(f"### Rendement prédit : {prediction[0]:.2f} tonnes/ha")
+        
+        # Section d'analyse
+        st.subheader("Analyse des résultats")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.metric("Production totale estimée", 
+                     f"{(prediction[0] * superficie):,.0f} tonnes", 
+                     help="Production = Rendement × Superficie")
+            
+        with col2:
+            # Vous pourriez ajouter ici des comparaisons avec des valeurs de référence
+            st.metric("Comparaison moyenne nationale", 
+                     f"{prediction[0]/2.5:.1f}x", 
+                     help="Ratio par rapport à la moyenne nationale de 2.5 tonnes/ha")
+        
+        # Graphique explicatif (factice - à adapter avec vos données réelles)
+        st.bar_chart({
+                'Facteurs': ['Température', 'Précipitations', 'Humidité', 'Ensoleillement'],
+                'Impact': [0.35, 0.45, 0.15, 0.05]
+        })
+        
+    except Exception as e:
+        st.error(f"Une erreur est survenue : {str(e)}")
+
+# Section d'information
+st.markdown("---")
+st.subheader("À propos")
+st.markdown("""
+Cette application utilise un modèle Random Forest entraîné sur des données historiques de rendement céréalier au Burkina Faso (1996-2022).
+
+**Variables utilisées :**
+- Région et type de céréale (catégorielles)
+- Paramètres climatiques (température, précipitations, etc.)
+- Données agronomiques (superficie, année)
+
+*Note : Les prédictions sont des estimations et doivent être interprétées avec les connaissances agronomiques locales.*
+""")
+
+# Option pour télécharger les résultats
+if 'prediction' in locals():
+    result_df = pd.DataFrame({
+        'Date': [datetime.now()],
+        'Région': [region],
+        'Céréale': [cereale],
+        'Rendement_prédit (tonnes/ha)': [prediction[0]],
+        'Production_totale (tonnes)': [prediction[0] * superficie]
+    })
+    
+    st.download_button(
+        label="Télécharger les résultats",
+        data=result_df.to_csv(index=False).encode('utf-8'),
+        file_name=f"prediction_rendement_{datetime.now().strftime('%Y%m%d')}.csv",
+        mime='text/csv'
+    )
+
