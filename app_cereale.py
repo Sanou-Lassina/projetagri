@@ -20,7 +20,7 @@ st.title("🌾 Analyse Interactive du Rendement Céréalier au Burkina Faso (199
 # Chargement des données
 @st.cache_data
 def load_data():
-    return pd.read_excel('D:/Production/projetAGRI/base_finale.xlsx')
+    return pd.read_excel('D:/Production/Projet/base_finale.xlsx')
 
 df = load_data()
 
